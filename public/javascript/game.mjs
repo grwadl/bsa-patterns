@@ -56,3 +56,5 @@ socket.on("greet_other", (payload) => console.log(payload));
 socket.on("comment_counter", (payload) => console.log(payload));
 socket.on("someone_finished", (payload) => console.log(payload));
 socket.on("comment_winners", (payload) => console.log(payload));
+socket.on("send_joke", (payload) => console.log(payload));
+socket.on("send_progress", (payload) => console.log(payload));

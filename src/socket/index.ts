@@ -224,14 +224,21 @@ export default (io: Server) => {
           clearInterval(this);
           io.to(socket.id).emit("time_is_over");
           rooms[index].winners = rooms[index].members.sort(
+            //!!!!!!!!!!!!
             (a, b) => b.percent - a.percent
           );
           return;
+        } else {
+          if (timer === 30) {
+            commentator.sendProgress(rooms[index]?.members, socket.id);
+          } else if ((timer > 30 || timer < 23) && timer % 10 === 0) {
+            commentator.sendJoke(socket.id);
+          }
         }
-        if (
+        const isFinished: boolean =
           rooms[index]?.winners?.length === rooms[index]?.members?.length ||
-          !rooms[index]?.inGame
-        ) {
+          !rooms[index]?.inGame;
+        if (isFinished) {
           //если уже все победили до окончания таймера перестаем бомбить клиент
           clearInterval(this);
           return;
@@ -245,14 +252,13 @@ export default (io: Server) => {
     socket.on("check_if_ready", (roomName: string) => {
       const index: number = rooms.findIndex((room) => room.name === roomName);
       if (index !== -1) if (!rooms[index]?.inGame) rooms[index].winners = [];
-      if (
+      const isEveryoneReady: boolean =
         index !== -1 &&
         rooms[index]?.members?.filter((item) => item.isReady)?.length ===
           rooms[index]?.members?.length &&
         rooms[index].members?.length >= 2 &&
-        !rooms[index]?.inGame
-      )
-        io.to(socket.id).emit("timer_render");
+        !rooms[index]?.inGame;
+      if (isEveryoneReady) io.to(socket.id).emit("timer_render");
     });
 
     socket.on("change_state_false", (roomName: string) => {
@@ -275,8 +281,8 @@ export default (io: Server) => {
 
     socket.on("ready_to_show_result", (roomName: string) => {
       const index: number = rooms.findIndex((room) => room.name === roomName);
+      commentator.sendResultMessage(socket.id, rooms[index].winners);
       io.to(socket.id).emit("show_result", rooms[index]?.winners);
-      commentator.sendResultMessage(rooms[index].winners);
       rooms[index].members.forEach((member) => (member.percent = 0));
       rooms[index].inGame = false;
       rooms[index].isHidden =
@@ -322,6 +328,7 @@ export default (io: Server) => {
           io.sockets
             .in(potentialRoom.name)
             .emit("show_result", potentialRoom!.winners);
+          commentator.sendResultMessage(socket.id, rooms[index].winners);
           rooms[index].isHidden = false;
           rooms[index].inGame = false;
           rooms[index]?.members?.forEach((member) => {
