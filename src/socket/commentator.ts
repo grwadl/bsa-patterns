@@ -1,8 +1,18 @@
 import { Server } from "socket.io";
 import { IRoom } from "./types";
-import { greetings, msgBeforeGame, msgResults } from "./texts";
+import {
+  greetings,
+  msgBeforeGame,
+  msgResults,
+  msgProgress,
+  msgWhenFinished,
+  jokes,
+  characreristicsPlayers,
+  startedGameMessage,
+  userCloseToFinishMsg,
+  otherCloseToFinishMsg,
+} from "./texts";
 import _ from "lodash";
-import { msgWhenFinished } from "./texts";
 import { IMember } from "./types";
 //за качество кода в index.ts сразу извиняюсь рефакторить не стал(это код еще с прошлого задания), потому что преподователь сказал оцениваться не будет та и я боюсь лишний раз трогать оно и так на соплях работает
 //но я думаю вы в index.ts и не полезете потому что абсолютно вся логика комментатора сделана здесь
@@ -15,6 +25,9 @@ enum Actions {
   sendWinners = "comment_winners",
   sendJoke = "send_joke",
   sendProgress = "send_progress",
+  sendPlayerList = "send_player_list",
+  userCloseToFinish = "user_close",
+  otherCloseToFinish = "other_close",
 }
 export interface IGreeting {
   toUser: string;
@@ -25,9 +38,16 @@ interface IdProps {
   actionName: Actions;
   payload: any;
 }
+interface IMappedUser {
+  username: string;
+  progress: number;
+}
 
 const MAX_GREETINGS_COUNT: number = 2;
 const MIN_GREETINGS_COUNT: number = 0;
+const MAX_JOKE_COUNT: number = 10;
+const MIN_JOKE_COUNT: number = 0;
+
 //в теории у нас могут быть много похожих сущностей которые будут эмитить на клиент, поэтому решил сделать такой класс
 class AbstractSender {
   io: Server;
@@ -75,24 +95,57 @@ export class Commentator extends AbstractSender {
   }
 
   public sendMessageWhenFinished(userName: string): void {
-    const message: string = TextGenerator.messageWhenFinished(userName);
-    super.emitInRoom(Actions.userFinished, message);
+    super.emitInRoom(
+      Actions.userFinished,
+      TextGenerator.messageWhenFinished(userName)
+    );
   }
 
   public sendResultMessage(id: string, winners: IMember[]): void {
     winners.length = winners?.length > 3 ? 3 : winners?.length;
-    const message: string = TextGenerator.sendMessageWhenGameOver(winners);
-    super.emitToId({ id, actionName: Actions.sendWinners, payload: message });
-  }
-  public sendProgress(users: IMember[], id: string): void {
-    const progress = users.map((user) => {
-      return { progress: user.percent, username: user.username };
+    console.log(winners);
+    super.emitToId({
+      id,
+      actionName: Actions.sendWinners,
+      payload: TextGenerator.sendMessageWhenGameOver(winners),
     });
-    super.emitToId({ id, actionName: Actions.sendProgress, payload: progress });
   }
+
+  public sendProgress(users: IMember[], id: string): void {
+    const progress = progressMapper(users);
+    super.emitToId({
+      id,
+      actionName: Actions.sendProgress,
+      payload: TextGenerator.sendMessageHalfProgress(progress),
+    });
+  }
+
   public sendJoke(id: string): void {
-    //я решил что пусть каждому юзеру будет случайная шутка отправляться
-    super.emitToId({ id, actionName: Actions.sendJoke, payload: "some joke" });
+    super.emitToId({
+      id,
+      actionName: Actions.sendJoke,
+      payload: TextGenerator.sendJoke(),
+    });
+  }
+
+  public sendPlayerList(id: string, players: IMember[]): void {
+    super.emitToId({
+      id,
+      actionName: Actions.sendPlayerList,
+      payload: TextGenerator.sendPlayerList(players),
+    });
+  }
+  public sendCloseToFinish(id: string, userName: string): void {
+    super.emitToId({
+      id,
+      actionName: Actions.userCloseToFinish,
+      payload: userCloseToFinishMsg,
+    });
+    super.emitRoomExclude(
+      Actions.otherCloseToFinish,
+      otherCloseToFinishMsg + userName,
+      [id]
+    );
   }
 }
 
@@ -108,20 +161,37 @@ export class TextGenerator {
       toOther: curriedOtherGreeting(userName)(rndInt),
     };
   }
+
   static messageBeforeGame(): string {
     return msgBeforeGame;
   }
 
   static messageWhenFinished(userName: string): string {
-    return generateFinishedMessage(msgBeforeGame, userName);
+    return generateFinishedMessage(msgWhenFinished, userName);
   }
+
   static sendMessageWhenGameOver(winners: IMember[]): string {
     return curriedGenerateGameOverText(winners)(msgResults);
   }
-  static sendMessageHalfProgress(): void {}
-  static sendJoke(): void {}
+
+  static sendMessageHalfProgress(members: IMappedUser[]): string {
+    return generateMessageProgress(members, msgProgress);
+  }
+
+  static sendJoke(): string {
+    const rndInt: number = randomGenerate(MAX_JOKE_COUNT, MIN_JOKE_COUNT);
+    return jokes[rndInt];
+  }
+
+  static sendPlayerList(playerList: IMember[]): string {
+    let list: string[] = [];
+    for (let i: number = 0; i < playerList.length; i++)
+      list.push(`${characreristicsPlayers[i]} ${playerList[i]?.username}`);
+    return startedGameMessage + list.join(" ");
+  }
 }
-//тут функции вспомогательные
+
+//тут функции вспомогательные тут есть carrying, hof and pure functions and chain with methods
 export const generateGreeting = (username: string, index: number): string => {
   return greetings[index]?.toOther + username;
 };
@@ -135,7 +205,57 @@ const generateFinishedMessage = (msg: string, userName: string): string => {
     .map((item: string) => (item === "name" ? userName : item))
     .join(" ");
 };
+const generateMessageProgress = (
+  members: IMappedUser[],
+  msg: string
+): string => {
+  let messageProgress: string = genearateLeader(members[0], msg);
+  return generateOtherProgress(members, messageProgress);
+};
 const generateGameOverText = (winners: IMember[], msg: string): string => {
-  return msg + winners.map((item: IMember) => item.username).join(" ");
+  return (
+    msg +
+    winners
+      .map((item: IMember) =>
+        item.percent >= 100
+          ? `${item.username} финишировал за ${item.seconds}с`
+          : `${item.username} не финишировал но набрал ${item.percent}%`
+      )
+      .join(" ")
+  );
 };
 const curriedGenerateGameOverText = _.curry(generateGameOverText);
+const progressMapper = (users: IMember[]): IMappedUser[] => {
+  return users
+    .map((user) => ({
+      progress: user.percent,
+      username: user.username,
+    }))
+    .sort((a, b) => a.progress - b.progress)
+    .reverse();
+};
+const genearateLeader = (leader: IMappedUser, msg): string => {
+  return msg
+    .split(" ")
+    .map((str) =>
+      str === "name"
+        ? `${leader.username} с прогрессом ${leader.progress}%`
+        : str
+    )
+    .join(" ");
+};
+const generateOtherProgress = (
+  members: IMappedUser[],
+  messageProgress: string
+): string => {
+  for (let i = 1; i < members.length; i++)
+    messageProgress += `${members[i].username} с прогрессом ${members[i].progress}%, `;
+  return (messageProgress +=
+    members[0].progress !== members[1]?.progress
+      ? `${
+          members[1]?.username
+        } уже догоняет нашего лидера, ему осталось всего лишь ${
+          members[0]?.progress - members[1]?.progress
+        }% чтоб занять первую позицию!!`
+      : "");
+};

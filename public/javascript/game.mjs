@@ -17,6 +17,7 @@ import { onCloseModal } from "./handlers/game/onCloseModal.mjs";
 import { timeOverHandler } from "./handlers/game/timeOverhandler.mjs";
 import { wrongRoomHandler } from "./handlers/rooms/createRoom/wrongRoomHandler.mjs";
 import { changeStateClick } from "./handlers/game/changeStateHandler.mjs";
+import { universalhandler } from "./handlers/commentator/universalHandler.mjs";
 
 const username = sessionStorage.getItem("username");
 
@@ -51,10 +52,4 @@ socket.on("start_game_timer_count", gamerCountHandler);
 socket.on("show_result", onCloseModal);
 socket.on("time_is_over", timeOverHandler);
 socket.on("wrong_name_room", wrongRoomHandler);
-socket.on("greet_me", (payload) => console.log(payload));
-socket.on("greet_other", (payload) => console.log(payload));
-socket.on("comment_counter", (payload) => console.log(payload));
-socket.on("someone_finished", (payload) => console.log(payload));
-socket.on("comment_winners", (payload) => console.log(payload));
-socket.on("send_joke", (payload) => console.log(payload));
-socket.on("send_progress", (payload) => console.log(payload));
+socket.onAny(universalhandler);

@@ -13,6 +13,7 @@ export default (io: Server) => {
   let users: string[] = [];
   let commentator;
   io.on("connection", (socket) => {
+    let timer: number;
     const wrongUsernameHandler = () => {
       username = null;
       socket.emit("error_username", "error");
@@ -36,6 +37,7 @@ export default (io: Server) => {
             isReady: false,
             percent: 0,
             id: socket.id,
+            seconds: 0,
           },
         ],
         chosedId: false,
@@ -74,6 +76,7 @@ export default (io: Server) => {
           isReady: false,
           percent: 0,
           id: socket.id,
+          seconds: 0,
         });
         socket.join(roomName);
         socket.leave("lobby");
@@ -179,6 +182,7 @@ export default (io: Server) => {
             ? {
                 ...item,
                 percent: percentage,
+                seconds: 60 - timer,
               }
             : item
         );
@@ -197,6 +201,7 @@ export default (io: Server) => {
         isReady: true,
         percent: user!.percent,
         id: socket.id,
+        seconds: timer,
       });
       commentator.sendMessageWhenFinished(username);
       if (rooms[index]?.winners?.length === rooms[index]?.members?.length) {
@@ -215,17 +220,17 @@ export default (io: Server) => {
     });
 
     socket.on("start_game_timer", (roomName: string) => {
-      let timer: number = SECONDS_FOR_GAME;
+      timer = SECONDS_FOR_GAME;
       const index: number = rooms.findIndex((room) => room.name === roomName);
-
+      commentator.sendPlayerList(socket.id, rooms[index]?.members);
       function intervalTimer(this: any) {
         --timer;
         if (timer < 0) {
           clearInterval(this);
           io.to(socket.id).emit("time_is_over");
-          rooms[index].winners = rooms[index].members.sort(
+          rooms[index].winners = rooms[index]?.members.sort(
             //!!!!!!!!!!!!
-            (a, b) => b.percent - a.percent
+            (a, b) => b.seconds - a.seconds
           );
           return;
         } else {
@@ -247,6 +252,10 @@ export default (io: Server) => {
       }
 
       setInterval(intervalTimer, 1000);
+    });
+
+    socket.on("close_to_finish", (roomName: string) => {
+      commentator.sendCloseToFinish(socket.id, username);
     });
 
     socket.on("check_if_ready", (roomName: string) => {
@@ -283,7 +292,6 @@ export default (io: Server) => {
       const index: number = rooms.findIndex((room) => room.name === roomName);
       commentator.sendResultMessage(socket.id, rooms[index].winners);
       io.to(socket.id).emit("show_result", rooms[index]?.winners);
-      rooms[index].members.forEach((member) => (member.percent = 0));
       rooms[index].inGame = false;
       rooms[index].isHidden =
         rooms[index].members.length >= MAXIMUM_USERS_FOR_ONE_ROOM;

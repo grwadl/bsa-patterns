@@ -3,6 +3,7 @@ export interface IMember {
   isReady: boolean;
   percent: number;
   id: string;
+  seconds: number;
 }
 
 export interface IRoom {

@@ -130,3 +130,10 @@ span.next::after {
   top: 8px;
   left: 20px;
 }
+
+.commentator {
+  max-width: 500px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
