@@ -231,20 +231,17 @@ const generateMessageProgress = (
   return generateOtherProgress(members, messageProgress);
 };
 const generateGameOverText = (winners: IMember[], msg: string): string => {
-  console.log(winners.length);
-
   return (
     msg +
     (winners.length
-      ? winners
-          .map(
-            (item: IMember) =>
-              `${item.username} финишировал за ${item.seconds}с`
-          )
-          .join(" ")
+      ? winnersMapper(winners)
       : "Никто так и не дошел до финиша(")
   );
 };
+const winnersMapper = (winners: IMember[]): string =>
+  winners
+    .map((item: IMember) => `${item.username} финишировал за ${item.seconds}с;`)
+    .join(" ");
 const progressMapper = (users: IMember[]): IMappedUser[] => {
   return users
     .map((user) => ({
@@ -273,11 +270,10 @@ const progressDiffGenerator = (
   second: IMappedUser
 ): string => {
   return first.progress !== second?.progress && second
-    ? `${
-        second?.username
-      } уже догоняет нашего лидера, ему осталось всего лишь ${
-        first?.progress - second?.progress
-      }% чтоб занять первую позицию!!`
+    ? `${second?.username} 
+    уже догоняет нашего лидера, ему осталось всего лишь 
+    ${first?.progress - second?.progress}%
+     чтоб занять первую позицию!!`
     : "";
 };
 
