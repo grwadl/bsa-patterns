@@ -234,7 +234,7 @@ export default (io: Server) => {
         } else {
           if (timer === 30) {
             commentator.sendProgress(rooms[index]?.members, socket.id);
-          } else if ((timer > 30 || timer < 23) && timer % 10 === 0) {
+          } else if ((timer > 30 || timer < 23) && timer % 10 === 0 && timer !== 0) {
             commentator.sendJoke(socket.id);
           }
         }
