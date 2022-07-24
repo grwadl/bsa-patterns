@@ -92,6 +92,7 @@ export default (io: Server) => {
 
     socket.on("change_state", (roomName: string) => {
       const index: number = rooms.findIndex((room) => room.name === roomName);
+      commentator.sendWhenStatusChanged(username);
       if (index >= 0)
         rooms[index].members = rooms[index].members.map((member) =>
           member.username !== username
@@ -149,6 +150,7 @@ export default (io: Server) => {
       socket.join("lobby");
       if (rooms[index].members.length >= 1) {
         io.in(roomName).emit("refresh_room_info", { room: rooms[index] });
+        commentator.sendWhenLeaved(username);
         io.sockets.in("lobby").emit(
           "get_rooms",
           rooms.filter((room) => !room.isHidden)
@@ -181,7 +183,7 @@ export default (io: Server) => {
           item.username === username
             ? {
                 ...item,
-                percent: percentage,
+                percent: Number(percentage.toFixed(1)),
                 seconds: 60 - timer,
               }
             : item
@@ -228,10 +230,15 @@ export default (io: Server) => {
         if (timer < 0) {
           clearInterval(this);
           io.to(socket.id).emit("time_is_over");
-          rooms[index].winners = rooms[index]?.members.sort(
-            //!!!!!!!!!!!!
-            (a, b) => b.seconds - a.seconds
-          );
+          rooms[index].winners = rooms[index].winners?.length
+            ? rooms[index]?.members.sort(
+                //!!!!!!!!!!!!
+                (a, b) => b.seconds - a.seconds
+              )
+            : rooms[index]?.members.sort(
+                //!!!!!!!!!!!!
+                (a, b) => b.percent - a.percent
+              );
           return;
         } else {
           if (timer === 30) {
@@ -319,6 +326,7 @@ export default (io: Server) => {
       );
       if (potentialRoom) {
         //если все же такая комната была то уведомляем пользователей об уходе одного юзера
+        commentator.sendWhenLeaved(username);
         io.sockets
           .to(potentialRoom.name)
           .emit("refresh_room_info", { room: potentialRoom });

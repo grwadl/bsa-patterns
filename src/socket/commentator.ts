@@ -11,6 +11,8 @@ import {
   startedGameMessage,
   userCloseToFinishMsg,
   otherCloseToFinishMsg,
+  changedStatusMessage,
+  leaveMessage,
 } from "./texts";
 import _ from "lodash";
 import { IMember } from "./types";
@@ -28,6 +30,8 @@ enum Actions {
   sendPlayerList = "send_player_list",
   userCloseToFinish = "user_close",
   otherCloseToFinish = "other_close",
+  changedStatus = "comment_change_status",
+  leaveRoom = "comment_leave_room",
 }
 export interface IGreeting {
   toUser: string;
@@ -45,7 +49,7 @@ interface IMappedUser {
 
 const MAX_GREETINGS_COUNT: number = 2;
 const MIN_GREETINGS_COUNT: number = 0;
-const MAX_JOKE_COUNT: number = 10;
+const MAX_JOKE_COUNT: number = 9;
 const MIN_JOKE_COUNT: number = 0;
 
 //в теории у нас могут быть много похожих сущностей которые будут эмитить на клиент, поэтому решил сделать такой класс
@@ -103,7 +107,6 @@ export class Commentator extends AbstractSender {
 
   public sendResultMessage(id: string, winners: IMember[]): void {
     winners.length = winners?.length > 3 ? 3 : winners?.length;
-    console.log(winners);
     super.emitToId({
       id,
       actionName: Actions.sendWinners,
@@ -147,6 +150,16 @@ export class Commentator extends AbstractSender {
       [id]
     );
   }
+  public sendWhenStatusChanged(username): void {
+    const payload = TextGenerator.sendWhenStatusChanged(
+      changedStatusMessage,
+      username
+    );
+    super.emitInRoom(Actions.changedStatus, payload);
+  }
+  public sendWhenLeaved(username): void {
+    super.emitInRoom(Actions.leaveRoom, TextGenerator.sendWhenLeaved(username));
+  }
 }
 
 //чтоб не делать класс Commentator слишком умным и не засорять его методы решил сделать отдельный класс с логикой генерации сообщений
@@ -189,6 +202,12 @@ export class TextGenerator {
       list.push(`${characreristicsPlayers[i]} ${playerList[i]?.username}`);
     return startedGameMessage + list.join(" ");
   }
+  static sendWhenStatusChanged(msg: string, username: string): string {
+    return stringMapper(msg, (str) => (str === "name" ? username : str));
+  }
+  static sendWhenLeaved(username: string): string {
+    return curriedGenerataLeaveMessage(username)(leaveMessage);
+  }
 }
 
 //тут функции вспомогательные тут есть carrying, hof and pure functions and chain with methods
@@ -200,10 +219,9 @@ const randomGenerate = (max: number, min: number): number => {
   return Math.floor(Math.random() * (max - min + 1) + min);
 };
 const generateFinishedMessage = (msg: string, userName: string): string => {
-  return msg
-    .split(" ")
-    .map((item: string) => (item === "name" ? userName : item))
-    .join(" ");
+  return stringMapper(msg, (item: string) =>
+    item === "name" ? userName : item
+  );
 };
 const generateMessageProgress = (
   members: IMappedUser[],
@@ -234,15 +252,10 @@ const progressMapper = (users: IMember[]): IMappedUser[] => {
     .sort((a, b) => a.progress - b.progress)
     .reverse();
 };
-const genearateLeader = (leader: IMappedUser, msg): string => {
-  return msg
-    .split(" ")
-    .map((str) =>
-      str === "name"
-        ? `${leader.username} с прогрессом ${leader.progress}%`
-        : str
-    )
-    .join(" ");
+const genearateLeader = (leader: IMappedUser, msg: string): string => {
+  return stringMapper(msg, (str) =>
+    str === "name" ? `${leader.username} с прогрессом ${leader.progress}%` : str
+  );
 };
 const generateOtherProgress = (
   members: IMappedUser[],
@@ -259,3 +272,11 @@ const generateOtherProgress = (
         }% чтоб занять первую позицию!!`
       : "");
 };
+
+const stringMapper = (msg: string, fn: (s: string) => string) => {
+  return msg.split(" ").map(fn).join(" ");
+};
+const generateLeaveMessage = (username: string, message: string): string => {
+  return username + message;
+};
+const curriedGenerataLeaveMessage = _.curry(generateLeaveMessage);

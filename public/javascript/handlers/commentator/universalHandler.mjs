@@ -9,11 +9,17 @@ const arrayEvents = [
   "user_close",
   "other_close",
   "comment_winners",
+  "comment_change_status",
+  "comment_leave_room",
 ];
 
+const changeComment = (text) => {
+  const commentatorWrapper = document.querySelector(".commentator__text");
+  commentatorWrapper.classList.add("animated");
+  commentatorWrapper.innerText = text;
+  setTimeout(() => commentatorWrapper.classList.remove("animated"), 1000);
+};
+
 export const universalhandler = (eventName, payload) => {
-  if (arrayEvents.includes(eventName)) {
-    const commentatorWrapper = document.querySelector(".commentator__text");
-    commentatorWrapper.innerText = payload;
-  }
+  arrayEvents.includes(eventName) ? changeComment(payload) : null;
 };

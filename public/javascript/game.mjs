@@ -52,4 +52,6 @@ socket.on("start_game_timer_count", gamerCountHandler);
 socket.on("show_result", onCloseModal);
 socket.on("time_is_over", timeOverHandler);
 socket.on("wrong_name_room", wrongRoomHandler);
+
+//вот тут новый модуль программы
 socket.onAny(universalhandler);

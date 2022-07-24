@@ -3,11 +3,11 @@
   border: 1px solid var(--main-button-border-color);
   background-color: var(--main-button-background-color);
   margin: 10px;
-  transition-duration: .3s;
+  transition-duration: 0.3s;
 }
 #quit-room-btn:hover {
   background-color: var(--main-hover);
-  transition-duration: .3s;
+  transition-duration: 0.3s;
 }
 
 .img-finished {
@@ -41,16 +41,16 @@
   width: 200px;
   font-size: large;
   font-weight: bold;
-  transition-duration: .3s;
+  transition-duration: 0.3s;
 }
 
 #ready-btn:hover {
   background-color: var(--main-hover);
-  transition-duration: .3s;
+  transition-duration: 0.3s;
 }
 
 #timer {
-  font-size:xx-large;
+  font-size: xx-large;
   font-weight: bold;
 }
 
@@ -60,7 +60,7 @@
 
 #game-timer {
   position: absolute;
-  bottom: 15px
+  bottom: 15px;
 }
 
 .user-header {
@@ -70,7 +70,7 @@
 
 .user {
   margin: 25px;
-  width: 100%
+  width: 100%;
 }
 
 .username {
@@ -85,11 +85,11 @@
 
 .user-progress {
   height: 100%;
-  background-color:green;
+  background-color: green;
 }
 
 .finished {
-  background-color:greenyellow !important;
+  background-color: greenyellow !important;
 }
 
 .user-item {
@@ -118,7 +118,7 @@ span.next {
 }
 span.next::after {
   position: absolute;
-  content: '';
+  content: "";
   width: 10px;
   height: 3px;
   bottom: 0;
@@ -132,8 +132,61 @@ span.next::after {
 }
 
 .commentator {
-  max-width: 500px;
+  max-width: 600px;
   position: absolute;
   left: 50%;
+  display: flex;
   transform: translateX(-50%);
+  gap: 20px;
+}
+
+.commentator__text {
+  flex: 0 1 400px;
+  border: 2px solid var(--main-hover);
+  line-height: 130%;
+  padding: 20px;
+}
+
+.commentator__text.animated {
+  border: 2px solid red;
+  position: relative;
+  animation: 1s vibro;
+}
+.commentator__text.animated::before {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  content: "NEW MESSAGE!";
+  color: red;
+  font-size: 16px;
+}
+
+@keyframes vibro {
+  10% {
+    transform: scale(0.98);
+  }
+  24%,
+  48%,
+  79%,
+  100% {
+    transform: rotate(-2deg) scale(1);
+  }
+  18%,
+  36%,
+  59%,
+  89% {
+    transform: rotate(2deg) scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.commentator__img {
+  flex: 0 1 200px;
+}
+
+.commentator__img img {
+  width: 100%;
 }
