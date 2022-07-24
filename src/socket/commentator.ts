@@ -184,7 +184,7 @@ export class TextGenerator {
   }
 
   static sendMessageWhenGameOver(winners: IMember[]): string {
-    return curriedGenerateGameOverText(winners)(msgResults);
+    return generateGameOverText(winners, msgResults);
   }
 
   static sendMessageHalfProgress(members: IMappedUser[]): string {
@@ -231,18 +231,20 @@ const generateMessageProgress = (
   return generateOtherProgress(members, messageProgress);
 };
 const generateGameOverText = (winners: IMember[], msg: string): string => {
+  console.log(winners.length);
+
   return (
     msg +
-    winners
-      .map((item: IMember) =>
-        item.percent >= 100
-          ? `${item.username} финишировал за ${item.seconds}с`
-          : `${item.username} не финишировал но набрал ${item.percent}%`
-      )
-      .join(" ")
+    (winners.length
+      ? winners
+          .map(
+            (item: IMember) =>
+              `${item.username} финишировал за ${item.seconds}с`
+          )
+          .join(" ")
+      : "Никто так и не дошел до финиша(")
   );
 };
-const curriedGenerateGameOverText = _.curry(generateGameOverText);
 const progressMapper = (users: IMember[]): IMappedUser[] => {
   return users
     .map((user) => ({
@@ -263,14 +265,20 @@ const generateOtherProgress = (
 ): string => {
   for (let i = 1; i < members.length; i++)
     messageProgress += `${members[i].username} с прогрессом ${members[i].progress}%, `;
-  return (messageProgress +=
-    members[0].progress !== members[1]?.progress
-      ? `${
-          members[1]?.username
-        } уже догоняет нашего лидера, ему осталось всего лишь ${
-          members[0]?.progress - members[1]?.progress
-        }% чтоб занять первую позицию!!`
-      : "");
+  return (messageProgress += progressDiffGenerator(members[0], members[1]));
+};
+
+const progressDiffGenerator = (
+  first: IMappedUser,
+  second: IMappedUser
+): string => {
+  return first.progress !== second?.progress && second
+    ? `${
+        second?.username
+      } уже догоняет нашего лидера, ему осталось всего лишь ${
+        first?.progress - second?.progress
+      }% чтоб занять первую позицию!!`
+    : "";
 };
 
 const stringMapper = (msg: string, fn: (s: string) => string) => {

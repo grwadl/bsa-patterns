@@ -5,7 +5,7 @@ import { changeReadyStatus, setProgress } from "../../views/user.mjs";
 import { reference } from "./getTextHandler.mjs";
 
 const resetUser = ({ username, isReady }) => {
-  changeReadyStatus({ username, ready: isReady });
+  changeReadyStatus({ username, ready: false });
   setProgress({ username, progress: 0 });
 };
 

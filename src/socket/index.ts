@@ -203,7 +203,7 @@ export default (io: Server) => {
         isReady: true,
         percent: user!.percent,
         id: socket.id,
-        seconds: timer,
+        seconds: 60 - timer,
       });
       commentator.sendMessageWhenFinished(username);
       if (rooms[index]?.winners?.length === rooms[index]?.members?.length) {
@@ -230,15 +230,6 @@ export default (io: Server) => {
         if (timer < 0) {
           clearInterval(this);
           io.to(socket.id).emit("time_is_over");
-          rooms[index].winners = rooms[index].winners?.length
-            ? rooms[index]?.members.sort(
-                //!!!!!!!!!!!!
-                (a, b) => b.seconds - a.seconds
-              )
-            : rooms[index]?.members.sort(
-                //!!!!!!!!!!!!
-                (a, b) => b.percent - a.percent
-              );
           return;
         } else {
           if (timer === 30) {
@@ -287,6 +278,7 @@ export default (io: Server) => {
             : {
                 ...member,
                 isReady: false,
+                percent: 0,
               }
         );
       const changedUser: IMember | undefined = rooms[index]?.members?.find(
@@ -309,6 +301,7 @@ export default (io: Server) => {
     });
 
     socket.on("disconnect", () => {
+      console.log(`${username} with id: ${socket.id} has disconnected`);
       const potentialRoom: IRoom | undefined = rooms.find((room) =>
         room.members.find((item) => item.username === username)
       ); //комната в которой мог быть пользователь

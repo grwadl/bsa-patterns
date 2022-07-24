@@ -23,7 +23,8 @@ export const msgBeforeGame: string =
   "Начинается отсчет игры! Всем пристегнуть ремни и приготовиться к старту гонки!";
 export const msgWhenFinished: string =
   "Воу! Игрок под именем name финишировал досрочно, поздравляем!";
-export const msgResults: string = "И в топе у нас оказались такие игроки как: ";
+export const msgResults: string =
+  "Я готов подвести результаты, дамиы и господа: ";
 export const msgProgress: string =
   "Итак, гонка прошла на половину, объявляю прогресс наших гонщиков: Лидирует name , а за ним идет ";
 export const jokes: string[] = [
